@@ -1,0 +1,1 @@
+python durumi_single.py
