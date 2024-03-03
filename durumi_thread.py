@@ -123,7 +123,6 @@ class ChatGPTAPIResponder:
         
         ans = response['choices'][0]['message']['content'].strip()
         
-        # 구매 방법에 대한 특별 처리
         if cat == 'purchase_method':
             purchase_method_embedding = self.get_embedding(ans)
             highest_similarity = -1
