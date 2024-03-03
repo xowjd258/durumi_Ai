@@ -6,6 +6,8 @@ from datetime import datetime
 
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
+ver = '0.1'
+
 
 class ChatGPTAPIResponder:
     def __init__(self):
