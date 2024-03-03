@@ -44,7 +44,10 @@ class ChatGPTAPIResponder:
         self.example_result_1 = ("이사", "세탁기", "구매", "긍정", "소음이 적고 세탁력이 좋음", "가격이 비쌈", "이사 간 집에 새로 구매한 세탁기에 대체로 만족하지만, 가격이 다소 비싸다는 점이 아쉬움.")
         self.example_result_2 = ("결혼", "안마의자", "모름", "긍정", "피로 회복에 도움", "없음", "결혼 기념일 선물로 받은 안마의자가 매일의 피로를 풀어주는데 큰 도움이 됨.")
         
-        self.examples = [self.example_result_1, self.example_result_2]
+        self.review_result_1 = (self.example_review_1,) + self.example_result_1
+        self.review_result_2 = (self.example_review_2,) + self.example_result_2
+
+        self.examples = [self.review_result_1, self.review_result_2]
 
     def _preload_embeddings(self, terms, model="text-embedding-ada-002"):
         embeddings = {}
@@ -64,6 +67,10 @@ class ChatGPTAPIResponder:
         start_time = datetime.now() 
         examples = self._get_formatted_examples()
         prompt = self._generate_prompt(review, examples)
+        start_idx = headers.index("context")
+        end_idx = headers.index("summary") + 1
+        answer_header_list = headers[start_idx:end_idx]
+        ans_list = []        
         try:   
             response = openai.ChatCompletion.create(
                 model=engine,
@@ -83,13 +90,14 @@ class ChatGPTAPIResponder:
                 return (*modified_analysis_result, start_time.strftime("%Y-%m-%d %H:%M:%S"), end_time.strftime("%Y-%m-%d %H:%M:%S"))
 
             else:
-                print("there is missing elements")
-                return ("none", "none", "none", "none", "none", "none", start_time.strftime("%Y-%m-%d %H:%M:%S"), end_time.strftime("%Y-%m-%d %H:%M:%S"), "none")
+                for cat in answer_header_list:
+                    ans = self.get_simple_response(review=review,cat=cat)
+                    ans_list.append(ans)
+                end_time = datetime.now()
+                ans_list.extend([start_time,end_time])
+                return tuple(ans_list)
         except:
-            start_idx = headers.index("context")
-            end_idx = headers.index("summary") + 1
-            answer_header_list = headers[start_idx:end_idx]
-            ans_list = []
+
             for cat in answer_header_list:
                 ans = self.get_simple_response(review=review,cat=cat)
                 ans_list.append(ans)
@@ -106,14 +114,17 @@ class ChatGPTAPIResponder:
         # 예제 프롬프트 생성
         example_prompts = []
         for example in self.examples:
-            context, review_example = example[cat_index], example[0]
+            try:
+                context, review_example = example[cat_index], example[0]
+            except:
+                print(f"example: {example}\nself.examples:{self.examples},cat_index:{cat_index},example[0]:{example[0]}")
             example_prompts.append(f"review: {review_example}\noutput: {context}")
         
         example_prompt_str = "\n".join(example_prompts)
         
         # 시스템 프롬프트에 예제 추가
-        sys_prompt = f"Given the following examples of {cat}, analyze the review:\n{example_prompt_str}\n\nNow, considering the review: {review}. \nWhat is the {cat}?"
-        
+        sys_prompt = f"Given the following examples of {cat}, analyze the review. Explain {cat} in Korean for me.:\n{example_prompt_str}\n\nreview: {review}\noutput:"
+        print(sys_prompt)
         response = openai.ChatCompletion.create(
             model=engine,
             messages=[{"role": "system", "content": sys_prompt},
