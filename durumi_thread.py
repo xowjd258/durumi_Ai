@@ -108,10 +108,8 @@ class ChatGPTAPIResponder:
 
 
     def get_simple_response(self, review, cat, engine="gpt-3.5-turbo", max_tokens=100, temperature=0.1):
-        # 카테고리에 해당하는 인덱스 찾기
         cat_index = headers.index(cat)
         
-        # 예제 프롬프트 생성
         example_prompts = []
         for example in self.examples:
             try:
@@ -122,9 +120,7 @@ class ChatGPTAPIResponder:
         
         example_prompt_str = "\n".join(example_prompts)
         
-        # 시스템 프롬프트에 예제 추가
         sys_prompt = f"Given the following examples of {cat}, analyze the review. Explain {cat} in Korean for me.:\n{example_prompt_str}\n\nreview: {review}\noutput:"
-        print(sys_prompt)
         response = openai.ChatCompletion.create(
             model=engine,
             messages=[{"role": "system", "content": sys_prompt},
